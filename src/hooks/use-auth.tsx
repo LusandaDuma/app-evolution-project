@@ -21,13 +21,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchRoles(userId: string) {
     const { data } = await (supabase as any)
-      .from("profiles")
+      .from("user_roles")
       .select("role")
-      .eq("id", userId)
-      .maybeSingle();
+      .eq("user_id", userId);
 
-    const role = data?.role;
-    setRoles(role ? [role] : ["student"]);
+    const fetched = (data ?? []).map((r: { role: AppRole }) => r.role);
+    setRoles(fetched.length > 0 ? fetched : ["student"]);
   }
 
   useEffect(() => {
