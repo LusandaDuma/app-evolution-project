@@ -19,18 +19,17 @@ function Dashboard() {
     // Fetch role directly here — bypass useAuth roles entirely
     async function getRole() {
       const { data } = await (supabase as any)
-        .from("profiles")
+        .from("user_roles")
         .select("role")
-        .eq("id", session!.user.id)
-        .maybeSingle();
+        .eq("user_id", session!.user.id);
 
-      const role = data?.role ?? "student";
+      const userRoles = (data ?? []).map((r: { role: string }) => r.role);
 
-      if (role === "admin") {
+      if (userRoles.includes("admin")) {
         navigate({ to: "/dashboard/admin", replace: true });
-      } else if (role === "coordinator") {
+      } else if (userRoles.includes("coordinator")) {
         navigate({ to: "/dashboard/coordinator", replace: true });
-      } else if (role === "independent") {
+      } else if (userRoles.includes("independent")) {
         navigate({ to: "/dashboard/grower", replace: true });
       } else {
         navigate({ to: "/dashboard/student", replace: true });
