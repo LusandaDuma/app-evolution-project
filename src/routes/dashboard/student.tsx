@@ -426,13 +426,13 @@ function CoursesTab({ userId }: { userId?: string }) {
         .select("course_id, progress")
         .eq("user_id", userId);
 
-      const enrolledMap = new Map(
+      const enrolledMap = new Map<string, number>(
         (enrolments ?? []).map((e: { course_id: string; progress: number }) => [
           e.course_id,
           e.progress,
-        ])
+        ] as [string, number])
       );
-      setEnrolledIds(new Set(enrolledMap.keys()));
+      setEnrolledIds(new Set<string>(Array.from(enrolledMap.keys())));
 
       const coursesWithProgress = (allCourses ?? []).map((c: Course) => ({
         ...c,
