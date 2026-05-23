@@ -2,6 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveDashboardRoute } from "@/lib/dashboard-routing";
+import { getErrorMessage, logError } from "@/lib/errors";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Imbewu" }] }),
@@ -18,20 +21,19 @@ function Dashboard() {
 
     // Fetch role directly here — bypass useAuth roles entirely
     async function getRole() {
-      const { data } = await (supabase as any)
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session!.user.id);
+      try {
+        const { data, error } = await (supabase as any)
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session!.user.id);
 
-      const userRoles = (data ?? []).map((r: { role: string }) => r.role);
+        if (error) throw error;
 
-      if (userRoles.includes("admin")) {
-        navigate({ to: "/dashboard/admin", replace: true });
-      } else if (userRoles.includes("coordinator")) {
-        navigate({ to: "/dashboard/coordinator", replace: true });
-      } else if (userRoles.includes("independent")) {
-        navigate({ to: "/dashboard/grower", replace: true });
-      } else {
+        const userRoles = (data ?? []).map((r: { role: string }) => r.role);
+        navigate({ to: resolveDashboardRoute(userRoles), replace: true });
+      } catch (err) {
+        logError("Dashboard", err);
+        toast.error(getErrorMessage(err, "dashboard"));
         navigate({ to: "/dashboard/student", replace: true });
       }
     }

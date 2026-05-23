@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import wordmark from "@/assets/imbewu-wordmark.png";
+import wordmark from "@/assets/imbewu-wordmark.svg";
+import { getErrorMessage, logError } from "@/lib/errors";
+import { getPasswordRequirements, isPasswordValid } from "@/lib/password";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -35,15 +37,8 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const passwordRequirements = {
-    minLength: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /\d/.test(password),
-    special: /[!@#$%^&*]/.test(password),
-  };
-
-  const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
+  const passwordRequirements = getPasswordRequirements(password);
+  const allRequirementsMet = isPasswordValid(password);
   const isSignupDisabled = mode === "signup" && !allRequirementsMet;
 
   useEffect(() => {
@@ -68,19 +63,13 @@ function AuthPage() {
         navigate({ to: "/dashboard" });
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          console.error("Sign in error:", error);
-          if (error.message.includes("Invalid login credentials")) {
-            throw new Error("Incorrect email or password. Please try again.");
-          }
-          throw error;
-        }
+        if (error) throw error;
         toast.success("Welcome back.");
         navigate({ to: "/dashboard" });
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong";
-      toast.error(msg);
+      logError(mode === "signup" ? "Signup" : "SignIn", err);
+      toast.error(getErrorMessage(err, mode === "signup" ? "signup" : "auth"));
     } finally {
       setBusy(false);
     }

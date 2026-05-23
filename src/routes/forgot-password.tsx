@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import wordmark from "@/assets/imbewu-wordmark.png";
+import wordmark from "@/assets/imbewu-wordmark.svg";
+import { getErrorMessage, logError } from "@/lib/errors";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({ meta: [{ title: "Reset password — Imbewu" }] }),
@@ -42,7 +43,8 @@ function ForgotPasswordPage() {
       setCooldown(COOLDOWN_SECONDS);
       toast.success("Check your inbox for the reset link.");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      logError("ForgotPassword", err);
+      toast.error(getErrorMessage(err, "forgot-password"));
     } finally {
       setBusy(false);
     }

@@ -4,7 +4,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { LogOut, Users, BookOpen, Award, Activity, Settings, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import wordmark from "@/assets/imbewu-wordmark.png";
+import wordmark from "@/assets/imbewu-wordmark.svg";
+import { getErrorMessage, logError } from "@/lib/errors";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard/admin")({
   component: AdminDashboard,
@@ -27,22 +29,29 @@ function AdminDashboard() {
   }, [loading, session, roles, navigate]);
 
   useEffect(() => {
+    if (!session) return;
+
     async function fetchStats() {
-      const [users, courses, enrolments, badges] = await Promise.all([
-        db.from("profiles").select("*", { count: "exact", head: true }),
-        db.from("courses").select("*", { count: "exact", head: true }),
-        db.from("course_enrolments").select("*", { count: "exact", head: true }),
-        db.from("student_badges").select("*", { count: "exact", head: true }),
-      ]);
-      setStats({
-        users: users.count ?? 0,
-        courses: courses.count ?? 0,
-        enrolments: enrolments.count ?? 0,
-        badges: badges.count ?? 0,
-      });
+      try {
+        const [users, courses, enrolments, badges] = await Promise.all([
+          db.from("profiles").select("*", { count: "exact", head: true }),
+          db.from("courses").select("*", { count: "exact", head: true }),
+          db.from("course_enrolments").select("*", { count: "exact", head: true }),
+          db.from("student_badges").select("*", { count: "exact", head: true }),
+        ]);
+        setStats({
+          users: users.count ?? 0,
+          courses: courses.count ?? 0,
+          enrolments: enrolments.count ?? 0,
+          badges: badges.count ?? 0,
+        });
+      } catch (err) {
+        logError("AdminStats", err);
+        toast.error(getErrorMessage(err, "admin"));
+      }
     }
     fetchStats();
-  }, []);
+  }, [session]);
 
   if (loading) return (
     <div className="grid min-h-screen place-items-center bg-background">

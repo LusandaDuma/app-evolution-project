@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { isCatastrophicSsrErrorBody } from "./lib/ssr-errors";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -23,31 +24,6 @@ function brandedErrorResponse(): Response {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
   });
-}
-
-function isCatastrophicSsrErrorBody(body: string, responseStatus: number): boolean {
-  let payload: unknown;
-  try {
-    payload = JSON.parse(body);
-  } catch {
-    return false;
-  }
-
-  if (!payload || Array.isArray(payload) || typeof payload !== "object") {
-    return false;
-  }
-
-  const fields = payload as Record<string, unknown>;
-  const expectedKeys = new Set(["message", "status", "unhandled"]);
-  if (!Object.keys(fields).every((key) => expectedKeys.has(key))) {
-    return false;
-  }
-
-  return (
-    fields.unhandled === true &&
-    fields.message === "HTTPError" &&
-    (fields.status === undefined || fields.status === responseStatus)
-  );
 }
 
 // h3 swallows in-handler throws into a normal 500 Response with body

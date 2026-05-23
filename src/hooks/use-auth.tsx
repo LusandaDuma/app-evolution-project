@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { getErrorMessage, logError } from "@/lib/errors";
 
 export type AppRole = "student" | "coordinator" | "admin" | "independent";
 
@@ -20,23 +21,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function fetchRoles(userId: string) {
-    const { data } = await (supabase as any)
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    try {
+      const { data, error } = await (supabase as any)
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
 
-    const fetched = (data ?? []).map((r: { role: AppRole }) => r.role);
-    setRoles(fetched.length > 0 ? fetched : ["student"]);
+      if (error) {
+        logError("AuthRoles", error);
+        setRoles(["student"]);
+        return;
+      }
+
+      const fetched = (data ?? []).map((r: { role: AppRole }) => r.role);
+      setRoles(fetched.length > 0 ? fetched : ["student"]);
+    } catch (err) {
+      logError("AuthRoles", getErrorMessage(err, "dashboard"));
+      setRoles(["student"]);
+    }
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) {
-        await fetchRoles(data.session.user.id);
-      }
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        setSession(data.session);
+        if (data.session?.user) {
+          await fetchRoles(data.session.user.id);
+        }
+      })
+      .catch((err) => {
+        logError("AuthSession", getErrorMessage(err, "auth"));
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, newSession) => {
@@ -53,8 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signOut() {
-    await supabase.auth.signOut();
-    window.location.href = "/auth";
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (err) {
+      logError("SignOut", err);
+    } finally {
+      window.location.href = "/auth";
+    }
   }
 
   return (

@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Sprout, GraduationCap, Users, Award, Leaf, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import wordmark from "@/assets/imbewu-wordmark.png";
+import wordmark from "@/assets/imbewu-wordmark.svg";
 
 export const Route = createFileRoute("/")({
   head: () => ({

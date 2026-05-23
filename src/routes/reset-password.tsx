@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import wordmark from "@/assets/imbewu-wordmark.png";
+import wordmark from "@/assets/imbewu-wordmark.svg";
+import { getErrorMessage, logError } from "@/lib/errors";
+import { validatePasswordMatch } from "@/lib/password";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{ title: "Choose a new password — Imbewu" }] }),
@@ -35,8 +37,9 @@ function ResetPasswordPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (password !== confirm) {
-      toast.error("Passwords don't match.");
+    const match = validatePasswordMatch(password, confirm);
+    if (!match.valid) {
+      toast.error(match.message);
       return;
     }
     setBusy(true);
@@ -46,7 +49,8 @@ function ResetPasswordPage() {
       toast.success("Password updated. Welcome back.");
       navigate({ to: "/dashboard" });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong");
+      logError("ResetPassword", err);
+      toast.error(getErrorMessage(err, "reset-password"));
     } finally {
       setBusy(false);
     }
